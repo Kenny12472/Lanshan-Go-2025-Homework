@@ -16,13 +16,13 @@ func main() {
 	database.InitRedis()
 
 	r := gin.Default()
+
 	r.SetTrustedProxies([]string{"127.0.0.1"})
 
 	todos := r.Group("/todos")
 	{
 		todos.GET("", api.GetTodos)
 		todos.POST("", api.CreateTodo)
-		todos.DELETE("/:id", api.DeleteTodo)
 	}
 
 	r.Run(":8080")
