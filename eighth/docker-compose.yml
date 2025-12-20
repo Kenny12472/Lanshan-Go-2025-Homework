@@ -1,0 +1,28 @@
+services:
+  web:
+    image: nginx:alpine
+    container_name: web_app
+    ports:
+      - "8080:80"
+    networks:
+      - mynet
+
+  db:
+    image: mysql:8.0
+    container_name: db_service
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: appdb
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - mynet
+    ports:
+      - "3307:3306"
+
+networks:
+  mynet:
+    driver: bridge
+
+volumes:
+  db_data:

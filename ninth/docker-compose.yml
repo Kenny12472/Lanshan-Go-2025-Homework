@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  web:
+    build: ./web # 如果有 Dockerfile 在 web 目录下
+    container_name: web_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - mynet
+
+  db:
+    image: mysql:8.0 # 或者你想用 redis:latest
+    container_name: db_service
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: appdb
+    volumes:
+      - db_data:/var/lib/mysql # 数据持久化
+    networks:
+      - mynet
+    ports:
+      - "3307:3306" # 宿主机端口映射
+
+networks:
+  mynet:
+    driver: bridge
+
+volumes:
+  db_data:
