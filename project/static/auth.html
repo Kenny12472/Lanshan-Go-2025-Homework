@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>登录 / 注册 — Go 博客系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-from-login: #4e73df;
+            --bg-to-login: #1cc88a;
+            --bg-from-register: #ff7eb3;
+            --bg-to-register: #6a11cb;
+            --card-width: 420px;
+            --card-radius: 18px;
+            --transition-speed: 420ms;
+            --content-max-width: 340px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+        }
+
+        /* 全屏渐变背景 */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: linear-gradient(135deg, var(--bg-from-login), var(--bg-to-login));
+            transition: background var(--transition-speed) ease;
+            will-change: background;
+        }
+
+        /* 核心修改：使用宽松的停止点，既保证粉色面积，又保持柔和过渡 */
+        body.register-mode::before {
+            background: linear-gradient(135deg, var(--bg-from-register) 25%, var(--bg-to-register) 75%);
+        }
+
+        .wrap {
+            width: min(980px, 96%);
+            display: flex;
+            gap: 2.2rem;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 1.6rem;
+        }
+
+        .hero {
+            flex: 1;
+            min-width: 220px;
+            color: rgba(255, 255, 255, 0.98);
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            align-items: flex-start;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(18px, 3.2vw, 26px);
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hero p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .card-wrap {
+            width: var(--card-width);
+            box-sizing: border-box;
+        }
+
+        .card {
+            width: 100%;
+            border-radius: var(--card-radius);
+            padding: 24px 0;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px) saturate(120%);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .forms {
+            display: flex;
+            width: 200%;
+            margin: 0;
+            padding: 0;
+            gap: 0;
+            transition: transform var(--transition-speed) cubic-bezier(.2, .9, .3, 1);
+            will-change: transform;
+        }
+
+        .panel {
+            flex: 0 0 50%;
+            min-width: 0;
+            padding: 0;
+            box-sizing: border-box;
+            min-height: 220px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .panel-inner {
+            width: 100%;
+            max-width: var(--content-max-width);
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            box-sizing: border-box;
+        }
+
+        .logo {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .logo .icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #fff;
+        }
+
+        .subtitle {
+            margin: 0;
+            opacity: 0.95;
+            font-size: 13px;
+            color: #f2f2f2;
+        }
+
+        .input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            margin: 8px 0 12px 0;
+            background: #fff;
+            color: #222;
+            min-width: 0;
+            box-sizing: border-box;
+            transition: box-shadow 150ms ease;
+        }
+
+        .input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 160ms ease, opacity 160ms;
+        }
+
+        .btn-primary {
+            background: #fff;
+            color: #222;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .error {
+            color: #ffd2d2;
+            font-size: 13px;
+            margin-top: 6px;
+            opacity: 0;
+            transition: opacity 200ms ease;
+        }
+
+        .error.show {
+            opacity: 1;
+        }
+
+        @media (max-width:880px) {
+            .wrap {
+                flex-direction: column;
+                gap: 18px;
+                padding: 1rem;
+                align-items: center;
+            }
+
+            .hero {
+                order: 2;
+                text-align: center;
+                align-items: center
+            }
+
+            .card-wrap {
+                order: 1;
+                width: 100%;
+                max-width: 480px;
+            }
+
+            .card {
+                padding: 20px 0;
+            }
+
+            .panel-inner {
+                max-width: 100%;
+                padding: 0 22px;
+            }
+
+            .logo .icon {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="wrap">
+        <div class="hero" aria-hidden="true">
+            <h1 id="hero-title">欢迎来到 Go 博客系统</h1>
+            <p id="hero-desc">写下你的想法，与世界分享。登录或注册开始发布第一篇文章。</p>
+        </div>
+
+        <div class="card-wrap" role="region" aria-label="身份验证卡片">
+            <div class="card">
+                <div class="forms" id="forms" style="transform: translate3d(0px,0,0);">
+
+                    <!-- 登录（左） -->
+                    <div class="panel" id="loginPanel">
+                        <div class="panel-inner">
+                            <div class="logo">
+                                <div class="icon"><i class="bi bi-box-arrow-in-right"
+                                        style="font-size:18px;color:#111"></i></div>
+                                <div>
+                                    <div class="title">登录</div>
+                                    <div class="subtitle">输入你的用户名和密码继续</div>
+                                </div>
+                            </div>
+
+                            <input id="loginUsername" class="input" placeholder="用户名" autocomplete="username">
+                            <input id="loginPassword" type="password" class="input" placeholder="密码"
+                                autocomplete="current-password">
+
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <button class="btn btn-primary" id="loginBtn" onclick="onLogin()">登录</button>
+                                <button class="btn btn-ghost" onclick="switchToRegister()">注册</button>
+                            </div>
+
+                            <div id="loginError" class="error" aria-live="polite"></div>
+                        </div>
+                    </div>
+
+                    <!-- 注册（右） -->
+                    <div class="panel" id="registerPanel">
+                        <div class="panel-inner">
+                            <div class="logo">
+                                <div class="icon"><i class="bi bi-person-plus" style="font-size:18px;color:#111"></i>
+                                </div>
+                                <div>
+                                    <div class="title">注册</div>
+                                    <div class="subtitle">创建你的账号开始创作</div>
+                                </div>
+                            </div>
+
+                            <input id="regUsername" class="input" placeholder="用户名" autocomplete="username">
+                            <input id="regPassword" type="password" class="input" placeholder="密码"
+                                autocomplete="new-password">
+                            <input id="regConfirm" type="password" class="input" placeholder="确认密码"
+                                autocomplete="new-password">
+
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <button class="btn btn-primary" id="regBtn" onclick="onRegister()">注册</button>
+                                <button class="btn btn-ghost" onclick="switchToLogin()">登录</button>
+                            </div>
+
+                            <div id="regError" class="error" aria-live="polite"></div>
+                        </div>
+                    </div>
+
+                </div> <!-- forms -->
+            </div> <!-- card -->
+        </div> <!-- card-wrap -->
+    </div> <!-- wrap -->
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        let isRegister = false;
+        let animLock = false;
+        const TRANS_MS = 420;
+        const formsEl = document.getElementById('forms');
+        const cardWrapEl = document.querySelector('.card-wrap');
+
+        function lockAnim() {
+            animLock = true;
+            setTimeout(() => { animLock = false; }, TRANS_MS + 20);
+        }
+
+        function setTranslateForRegister() {
+            void cardWrapEl.offsetWidth;
+            const cardWidth = Math.max(0, Math.round(cardWrapEl.clientWidth));
+            formsEl.style.transform = `translate3d(-${cardWidth}px, 0, 0)`;
+        }
+
+        function switchToRegister() {
+            if (isRegister || animLock) return;
+            lockAnim();
+            isRegister = true;
+            document.body.classList.add('register-mode');
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setTranslateForRegister();
+                });
+            });
+
+            document.getElementById('hero-title').innerText = '加入我们，开始创作';
+            document.getElementById('hero-desc').innerText = '注册后即可发表文章、评论、关注其他人。';
+            setTimeout(() => document.getElementById('regUsername').focus(), TRANS_MS + 10);
+        }
+
+        function switchToLogin() {
+            if (!isRegister || animLock) return;
+            lockAnim();
+            isRegister = false;
+            document.body.classList.remove('register-mode');
+            formsEl.style.transform = 'translate3d(0px, 0, 0)';
+
+            document.getElementById('hero-title').innerText = '欢迎回来';
+            document.getElementById('hero-desc').innerText = '输入你的用户名和密码继续';
+            setTimeout(() => document.getElementById('loginUsername').focus(), TRANS_MS + 10);
+        }
+
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (isRegister) setTranslateForRegister();
+            }, 80);
+        });
+
+        window.addEventListener('load', () => {
+            formsEl.style.transform = 'translate3d(0px,0,0)';
+            document.getElementById('loginUsername').focus();
+        });
+
+        async function onLogin() {
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value;
+            const errEl = document.getElementById('loginError');
+            errEl.classList.remove('show'); errEl.innerText = '';
+
+            if (!u || !p) {
+                errEl.innerText = '用户名和密码不能为空'; errEl.classList.add('show'); return;
+            }
+
+            const btn = document.getElementById('loginBtn'); btn.disabled = true; btn.style.opacity = 0.7;
+            try {
+                const res = await apiLogin(u, p);
+                if (res && res.token) {
+                    window.location.href = '/static/index.html';
+                } else {
+                    errEl.innerText = res?.error || '登录失败'; errEl.classList.add('show');
+                }
+            } catch (e) {
+                errEl.innerText = '网络错误'; errEl.classList.add('show');
+            } finally {
+                btn.disabled = false; btn.style.opacity = 1;
+            }
+        }
+
+        async function onRegister() {
+            const u = document.getElementById('regUsername').value.trim();
+            const p = document.getElementById('regPassword').value;
+            const c = document.getElementById('regConfirm').value;
+            const errEl = document.getElementById('regError');
+            errEl.classList.remove('show'); errEl.innerText = '';
+
+            if (!u || !p || !c) {
+                errEl.innerText = '请完整填写所有字段'; errEl.classList.add('show'); return;
+            }
+            if (p !== c) {
+                errEl.innerText = '两次密码不一致'; errEl.classList.add('show'); return;
+            }
+
+            const btn = document.getElementById('regBtn'); btn.disabled = true; btn.style.opacity = 0.7;
+            try {
+                const res = await apiRegister(u, p);
+                if (res && res.message) {
+                    switchToLogin();
+                    document.getElementById('loginUsername').value = u;
+                    document.getElementById('loginPassword').value = '';
+                    alert('注册成功，请登录');
+                } else {
+                    errEl.innerText = res?.error || '注册失败'; errEl.classList.add('show');
+                }
+            } catch (e) {
+                errEl.innerText = '网络错误'; errEl.classList.add('show');
+            } finally {
+                btn.disabled = false; btn.style.opacity = 1;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (isRegister) onRegister(); else onLogin();
+            }
+        });
+    </script>
+</body>
+
+</html>

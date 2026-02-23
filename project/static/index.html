@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GO博客系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="/static/js/api.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+            background: #f5f6fa;
+        }
+
+        .topbar {
+            height: 60px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .user-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 900px;
+            margin: 30px auto;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 6px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #4f46e5;
+            color: #fff;
+        }
+
+        button.secondary {
+            background: #888;
+        }
+
+        .article {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .article:last-child {
+            border-bottom: none;
+        }
+
+        .author {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="topbar">
+        <div class="logo">GO博客系统</div>
+        <div class="user-box">
+            <div class="avatar" id="userAvatar">U</div>
+            <div>
+                <div id="userDisplayName">未登录</div>
+                <div id="userAccount" style="font-size:12px;color:#888;"></div>
+            </div>
+            <button onclick="showProfile()">编辑资料</button>
+            <button class="secondary" onclick="logout()">退出</button>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div class="card">
+            <h3>发布文章</h3>
+            <input id="newTitle" placeholder="文章标题">
+            <textarea id="newContent" rows="5" placeholder="文章内容"></textarea>
+            <button onclick="createArticle()">发布</button>
+        </div>
+
+        <div class="card">
+            <h3>全部文章</h3>
+            <div id="articlesList">加载中...</div>
+        </div>
+
+    </div>
+
+    <!-- 编辑资料弹窗 -->
+    <div id="profileModal"
+        style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);">
+        <div style="width:400px;margin:100px auto;background:#fff;padding:20px;border-radius:10px;">
+            <h3>编辑个人资料</h3>
+            <input id="profileDisplayName" placeholder="显示名称">
+            <textarea id="profileBio" rows="3" placeholder="个人简介"></textarea>
+            <button onclick="saveProfile()">保存</button>
+            <button class="secondary" onclick="hideProfile()">取消</button>
+        </div>
+    </div>
+
+    <script>
+
+        /* ================= 初始化 ================= */
+
+        window.onload = async function () {
+            if (!getToken()) {
+                window.location.href = "/static/auth.html";
+                return;
+            }
+            await loadCurrentUser();
+            await loadArticles();
+        };
+
+        /* ================= 用户信息 ================= */
+
+        async function loadCurrentUser() {
+            const p = await apiGetMyProfile();
+            if (!p || p.error) {
+                removeToken();
+                window.location.href = "/static/auth.html";
+                return;
+            }
+
+            const display = p.display_name || p.username || "";
+            document.getElementById("userDisplayName").innerText = display;
+            document.getElementById("userAccount").innerText = p.username || "";
+            document.getElementById("userAvatar").innerText = display ? display[0].toUpperCase() : "U";
+
+            document.getElementById("profileDisplayName").value = p.display_name || p.username || "";
+            document.getElementById("profileBio").value = p.bio || "";
+        }
+
+        function showProfile() {
+            document.getElementById("profileModal").style.display = "block";
+        }
+        function hideProfile() {
+            document.getElementById("profileModal").style.display = "none";
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById("profileDisplayName").value.trim();
+            const bio = document.getElementById("profileBio").value.trim();
+            if (!name) { alert("名称不能为空"); return; }
+
+            const r = await apiUpdateMyProfile(name, bio);
+            if (!r || r.error) {
+                alert("保存失败");
+                return;
+            }
+            alert("保存成功");
+            hideProfile();
+            await loadCurrentUser();
+            await loadArticles();
+        }
+
+        function logout() {
+            removeToken();
+            window.location.href = "/static/auth.html";
+        }
+
+        /* ================= 文章 ================= */
+
+        async function createArticle() {
+            const title = document.getElementById("newTitle").value.trim();
+            const content = document.getElementById("newContent").value.trim();
+            if (!title || !content) {
+                alert("标题和内容不能为空");
+                return;
+            }
+
+            const r = await apiCreateArticle(title, content, 1);
+            if (!r || r.error) {
+                alert("发布失败");
+                return;
+            }
+
+            document.getElementById("newTitle").value = "";
+            document.getElementById("newContent").value = "";
+            await loadArticles();
+        }
+
+        async function loadArticles() {
+            const res = await apiListArticles(1, 20);
+            if (!res || !res.items) {
+                document.getElementById("articlesList").innerHTML = "加载失败";
+                return;
+            }
+
+            const list = res.items;
+            if (list.length === 0) {
+                document.getElementById("articlesList").innerHTML = "暂无文章";
+                return;
+            }
+
+            let html = "";
+            list.forEach(a => {
+                html += `
+        <div class="article">
+            <h4>${a.title}</h4>
+            <div class="author">作者：${a.author_name} · ${new Date(a.created_at).toLocaleString()}</div>
+            <p>${a.content}</p>
+        </div>
+        `;
+            });
+
+            document.getElementById("articlesList").innerHTML = html;
+        }
+
+    </script>
+
+</body>
+
+</html>
