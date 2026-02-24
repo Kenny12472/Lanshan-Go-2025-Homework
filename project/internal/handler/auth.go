@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"project/internal/db"
+	"project/internal/middleware"
 	"project/internal/model"
 
 	"github.com/gin-gonic/gin"
@@ -75,6 +76,11 @@ func Login(c *gin.Context) {
 	}
 
 	// 登录成功 -> 生成 token（你原来有 JWT 逻辑就放这里）
-	token := "..." // 调用你已有的函数生成 JWT
+	// 生成 JWT
+	token, err := middleware.GenerateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成 token 失败"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }

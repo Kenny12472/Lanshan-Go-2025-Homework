@@ -13,6 +13,9 @@ import (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
+	// 请求日志（记录 Authorization，便于调试浏览器端请求）
+	r.Use(middleware.RequestLogger())
+
 	// 自动建表（若表已存在则不会覆盖）
 	if err := db.DB.AutoMigrate(
 		&model.User{},

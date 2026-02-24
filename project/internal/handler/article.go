@@ -9,6 +9,7 @@ import (
 	"project/internal/model"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // ArticleResp 用于返回给前端的文章结构（含作者名）
@@ -23,63 +24,27 @@ type ArticleResp struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// helper: 从 gin.Context 安全地读取 user_id（兼容多种类型）
-func getUserIDFromContext(c *gin.Context) (uint64, bool) {
-	val, ok := c.Get("user_id")
-	if !ok || val == nil {
-		return 0, false
-	}
-	switch v := val.(type) {
-	case uint64:
-		return v, true
-	case uint:
-		return uint64(v), true
-	case int:
-		if v < 0 {
-			return 0, false
-		}
-		return uint64(v), true
-	case int64:
-		if v < 0 {
-			return 0, false
-		}
-		return uint64(v), true
-	case float64:
-		if v < 0 {
-			return 0, false
-		}
-		return uint64(v), true
-	case string:
-		// 如果中间件把 id 存为 string
-		if id, err := strconv.ParseUint(v, 10, 64); err == nil {
-			return id, true
-		}
-		return 0, false
-	default:
-		return 0, false
-	}
-}
-
-// ---------------- ListArticles (分页 + 搜索) ----------------
-// 这个版本使用 users.username 作为作者名（兼容之前 DB），并按发布时间倒序返回
+// ---------------- ListArticles (分页 + 搜索 + 关注优先) ----------------
+// GET /articles?page=1&page_size=10&query=xxx&followed_first=1
 func ListArticles(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")
 	sizeStr := c.DefaultQuery("page_size", "10")
 	query := c.Query("query")
+	followedFirst := c.Query("followed_first") // "1" 或 "true" 触发优先
 
 	page, _ := strconv.Atoi(pageStr)
 	if page < 1 {
 		page = 1
 	}
 	size, _ := strconv.Atoi(sizeStr)
-	if size <= 0 || size > 200 {
+	if size <= 0 || size > 100 {
 		size = 10
 	}
 	offset := (page - 1) * size
 
 	var results []ArticleResp
 	dbQuery := db.DB.Table("articles").
-		Select("articles.id, articles.author_id, users.username as author_name, articles.title, articles.content, articles.status, articles.like_count, articles.created_at").
+		Select("articles.id, articles.author_id, COALESCE(users.display_name, users.username) as author_name, articles.title, articles.content, articles.status, articles.like_count, articles.created_at").
 		Joins("left join users on users.id = articles.author_id").
 		Where("articles.status = ?", model.ArticlePublish)
 
@@ -88,9 +53,27 @@ func ListArticles(c *gin.Context) {
 		dbQuery = dbQuery.Where("(articles.title LIKE ? OR articles.content LIKE ?)", likeq, likeq)
 	}
 
+	// 如果请求需要关注优先，并且有登录用户，则做 left join follows f 并在 order 中优先显示关注作者
+	if followedFirst == "1" || followedFirst == "true" {
+		if uidVal, ok := c.Get("user_id"); ok {
+			userID := uidVal.(uint64)
+			dbQuery = dbQuery.
+				Joins("LEFT JOIN follows f ON f.following_id = articles.author_id AND f.follower_id = ?", userID).
+				Order("CASE WHEN f.id IS NULL THEN 1 ELSE 0 END, articles.created_at DESC")
+		} else {
+			// 未登录就按时间倒序
+			dbQuery = dbQuery.Order("articles.created_at desc")
+		}
+	} else {
+		// 默认按发布时间倒序（最新前）
+		dbQuery = dbQuery.Order("articles.created_at desc")
+	}
+
 	var total int64
-	if err := dbQuery.Order("articles.created_at desc").Count(&total).Offset(offset).Limit(size).Scan(&results).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败", "detail": err.Error()})
+	dbQuery.Count(&total)
+
+	if err := dbQuery.Offset(offset).Limit(size).Scan(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
 	}
 
@@ -106,9 +89,10 @@ func ListArticles(c *gin.Context) {
 func GetArticle(c *gin.Context) {
 	idStr := c.Param("id")
 
+	// 查询文章（仅发布状态）
 	var article ArticleResp
 	if err := db.DB.Table("articles").
-		Select("articles.id, articles.author_id, users.username as author_name, articles.title, articles.content, articles.status, articles.like_count, articles.created_at").
+		Select("articles.id, articles.author_id, COALESCE(users.display_name, users.username) as author_name, articles.title, articles.content, articles.status, articles.like_count, articles.created_at").
 		Joins("left join users on users.id = articles.author_id").
 		Where("articles.id = ? AND articles.status = ?", idStr, model.ArticlePublish).
 		First(&article).Error; err != nil {
@@ -116,9 +100,11 @@ func GetArticle(c *gin.Context) {
 		return
 	}
 
-	// 增加 view_count（非致命）
-	_ = db.DB.Model(&model.Article{}).Where("id = ?", idStr).
-		UpdateColumn("view_count", db.DB.Statement.Clauses).Error
+	// 增加 view_count（使用 gorm.Expr）
+	if err := db.DB.Model(&model.Article{}).Where("id = ?", idStr).
+		UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).Error; err != nil {
+		// 非致命
+	}
 
 	c.JSON(http.StatusOK, article)
 }
@@ -127,11 +113,12 @@ func GetArticle(c *gin.Context) {
 // POST /articles
 // body: { title, content, status }
 func CreateArticle(c *gin.Context) {
-	userID, ok := getUserIDFromContext(c)
-	if !ok || userID == 0 {
+	uidVal, ok := c.Get("user_id")
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未登录"})
 		return
 	}
+	userID := uidVal.(uint64)
 
 	var req struct {
 		Title   string `json:"title"`
@@ -140,7 +127,7 @@ func CreateArticle(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误", "detail": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误"})
 		return
 	}
 	if req.Title == "" || req.Content == "" {
@@ -158,20 +145,23 @@ func CreateArticle(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&art).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建失败", "detail": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "创建成功", "id": art.ID})
 }
 
-// ---------------- UpdateArticle ---------------- (保持不变，简单权限校验)
+// ---------------- UpdateArticle ----------------
+// PUT /articles/:id
+// body: { title, content, status }
 func UpdateArticle(c *gin.Context) {
-	userID, ok := getUserIDFromContext(c)
-	if !ok || userID == 0 {
+	uidVal, ok := c.Get("user_id")
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未登录"})
 		return
 	}
+	userID := uidVal.(uint64)
 
 	idStr := c.Param("id")
 	var article model.Article
@@ -180,6 +170,7 @@ func UpdateArticle(c *gin.Context) {
 		return
 	}
 
+	// 只有作者可以更新（也可以扩展为管理员权限）
 	if article.AuthorID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "没有权限"})
 		return
@@ -201,7 +192,7 @@ func UpdateArticle(c *gin.Context) {
 	article.UpdatedAt = time.Now()
 
 	if err := db.DB.Save(&article).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新失败", "detail": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新失败"})
 		return
 	}
 
@@ -209,12 +200,14 @@ func UpdateArticle(c *gin.Context) {
 }
 
 // ---------------- DeleteArticle（逻辑删除） ----------------
+// DELETE /articles/:id
 func DeleteArticle(c *gin.Context) {
-	userID, ok := getUserIDFromContext(c)
-	if !ok || userID == 0 {
+	uidVal, ok := c.Get("user_id")
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未登录"})
 		return
 	}
+	userID := uidVal.(uint64)
 
 	idStr := c.Param("id")
 	var article model.Article
@@ -222,6 +215,8 @@ func DeleteArticle(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "文章不存在"})
 		return
 	}
+
+	// 只有作者可以删除（或管理员）
 	if article.AuthorID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "没有权限"})
 		return
@@ -229,7 +224,7 @@ func DeleteArticle(c *gin.Context) {
 
 	if err := db.DB.Model(&model.Article{}).Where("id = ?", article.ID).
 		Update("status", model.ArticleDeleted).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败", "detail": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败"})
 		return
 	}
 

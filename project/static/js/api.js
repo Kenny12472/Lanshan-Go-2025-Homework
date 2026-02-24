@@ -1,5 +1,5 @@
-// static/js/api.js （重写，覆盖原文件）
-const API_BASE = "http://localhost:8080"; // 如需相对路径可改成 ""
+// static/js/api.js
+const API_BASE = "http://localhost:8080"; // 若同域可改为 ""
 
 // token helpers
 function getToken() { return localStorage.getItem("token"); }
@@ -10,7 +10,7 @@ function authHeader() {
     return t ? { "Authorization": "Bearer " + t } : {};
 }
 
-// 更健壮的 request
+// robust request
 async function request(url, method = "GET", data = null, auth = false) {
     try {
         if (!url.startsWith("http")) {
@@ -29,18 +29,8 @@ async function request(url, method = "GET", data = null, auth = false) {
         const text = await res.text();
         const ct = (res.headers.get("content-type") || "").toLowerCase();
 
-        // 专门处理 401：把 token 清掉并跳回登录页（单页应用也可以只清 token）
-        if (res.status === 401) {
-            try { console.warn("401 from", url, text); } catch (e) { }
-            removeToken();
-            // 若在前端页面：跳转回登录页（避免循环重定向：仅在页面环境下）
-            try { if (typeof window !== 'undefined') window.location.href = "/static/auth.html"; } catch (e) { }
-            return null;
-        }
-
         if (!res.ok) {
-            console.error(`HTTP ${res.status} ${method} ${url} -> ${text}`);
-            // 尝试解析 JSON 错误体
+            console.error(`HTTP ${res.status} ${method} ${url}`, text);
             try { return JSON.parse(text); } catch (e) { return null; }
         }
 
@@ -50,6 +40,7 @@ async function request(url, method = "GET", data = null, auth = false) {
                 return null;
             }
         }
+
         return text;
     } catch (e) {
         console.error("request exception:", e, url, method, data);
