@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>登录 / 注册 — Go 博客系统</title>
+    <title>登录 / 注册 — Go 文章系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
@@ -35,7 +35,7 @@
             background: transparent;
         }
 
-        /* 全屏渐变背景 */
+        /* 背景样式 */
         body::before {
             content: "";
             position: fixed;
@@ -46,7 +46,7 @@
             will-change: background;
         }
 
-        /* 核心修改：使用宽松的停止点，既保证粉色面积，又保持柔和过渡 */
+        /* 注册模式时的背景变化 */
         body.register-mode::before {
             background: linear-gradient(135deg, var(--bg-from-register) 25%, var(--bg-to-register) 75%);
         }
@@ -269,15 +269,15 @@
 
     <div class="wrap">
         <div class="hero" aria-hidden="true">
-            <h1 id="hero-title">欢迎来到 Go 博客系统</h1>
-            <p id="hero-desc">写下你的想法，与世界分享。登录或注册开始发布第一篇文章。</p>
+            <h1 id="hero-title">探索更好的 Go 文章系统</h1>
+            <p id="hero-desc">写作、分享与讨论的轻量平台，支持登录与注册</p>
         </div>
 
-        <div class="card-wrap" role="region" aria-label="身份验证卡片">
+        <div class="card-wrap" role="region" aria-label="�����֤��Ƭ">
             <div class="card">
                 <div class="forms" id="forms" style="transform: translate3d(0px,0,0);">
 
-                    <!-- 登录（左） -->
+                    <!-- ��¼����??-->
                     <div class="panel" id="loginPanel">
                         <div class="panel-inner">
                             <div class="logo">
@@ -285,7 +285,7 @@
                                         style="font-size:18px;color:#111"></i></div>
                                 <div>
                                     <div class="title">登录</div>
-                                    <div class="subtitle">输入你的用户名和密码继续</div>
+                                    <div class="subtitle">使用账号登录以管理文章与评论</div>
                                 </div>
                             </div>
 
@@ -302,7 +302,7 @@
                         </div>
                     </div>
 
-                    <!-- 注册（右） -->
+                    <!-- ע�ᣨ��??-->
                     <div class="panel" id="registerPanel">
                         <div class="panel-inner">
                             <div class="logo">
@@ -310,7 +310,7 @@
                                 </div>
                                 <div>
                                     <div class="title">注册</div>
-                                    <div class="subtitle">创建你的账号开始创作</div>
+                                    <div class="subtitle">填写账号信息并注册新账户</div>
                                 </div>
                             </div>
 
@@ -365,8 +365,8 @@
                 });
             });
 
-            document.getElementById('hero-title').innerText = '加入我们，开始创作';
-            document.getElementById('hero-desc').innerText = '注册后即可发表文章、评论、关注其他人。';
+            document.getElementById('hero-title').innerText = '欢迎加入，我们一同写作与分享';
+            document.getElementById('hero-desc').innerText = '注册后可以发布文章、评论和点赞，与社区互动';
             setTimeout(() => document.getElementById('regUsername').focus(), TRANS_MS + 10);
         }
 
@@ -377,8 +377,8 @@
             document.body.classList.remove('register-mode');
             formsEl.style.transform = 'translate3d(0px, 0, 0)';
 
-            document.getElementById('hero-title').innerText = '欢迎回来';
-            document.getElementById('hero-desc').innerText = '输入你的用户名和密码继续';
+            document.getElementById('hero-title').innerText = '探索更好的 Go 写作平台';
+            document.getElementById('hero-desc').innerText = '登录以管理你的文章和评论';
             setTimeout(() => document.getElementById('loginUsername').focus(), TRANS_MS + 10);
         }
 
@@ -401,9 +401,7 @@
             const errEl = document.getElementById('loginError');
             errEl.classList.remove('show'); errEl.innerText = '';
 
-            if (!u || !p) {
-                errEl.innerText = '用户名和密码不能为空'; errEl.classList.add('show'); return;
-            }
+            if (!u || !p) { errEl.innerText = '用户名或密码不能为空'; errEl.classList.add('show'); return; }
 
             const btn = document.getElementById('loginBtn'); btn.disabled = true; btn.style.opacity = 0.7;
             try {
@@ -427,12 +425,8 @@
             const errEl = document.getElementById('regError');
             errEl.classList.remove('show'); errEl.innerText = '';
 
-            if (!u || !p || !c) {
-                errEl.innerText = '请完整填写所有字段'; errEl.classList.add('show'); return;
-            }
-            if (p !== c) {
-                errEl.innerText = '两次密码不一致'; errEl.classList.add('show'); return;
-            }
+            if (!u || !p || !c) { errEl.innerText = '请填写完整信息'; errEl.classList.add('show'); return; }
+            if (p !== c) { errEl.innerText = '两次密码不一致'; errEl.classList.add('show'); return; }
 
             const btn = document.getElementById('regBtn'); btn.disabled = true; btn.style.opacity = 0.7;
             try {

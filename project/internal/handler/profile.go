@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ProfileResp: 返回给前端的用户信息
 type ProfileResp struct {
 	ID          uint64    `json:"id"`
 	Username    string    `json:"username"`
@@ -20,7 +19,6 @@ type ProfileResp struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-// GetMyProfile - GET /me/profile
 func GetMyProfile(c *gin.Context) {
 	uidVal, ok := c.Get("user_id")
 	if !ok {
@@ -45,8 +43,6 @@ func GetMyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// UpdateMyProfile - PUT /me/profile
-// body: { display_name, bio }
 func UpdateMyProfile(c *gin.Context) {
 	uidVal, ok := c.Get("user_id")
 	if !ok {
@@ -63,7 +59,6 @@ func UpdateMyProfile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误"})
 		return
 	}
-	// 简单校验 (可加强)
 	if len(req.DisplayName) > 128 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "显示名太长"})
 		return
@@ -77,7 +72,6 @@ func UpdateMyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "更新成功"})
 }
 
-// GetUserProfile - GET /users/:id/profile （公开）
 func GetUserProfile(c *gin.Context) {
 	idStr := c.Param("id")
 	uid, err := strconv.ParseUint(idStr, 10, 64)

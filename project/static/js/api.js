@@ -1,7 +1,6 @@
-// static/js/api.js
-const API_BASE = "http://localhost:8080"; // 若同域可改为 ""
+﻿const API_BASE = "http://localhost:8080";
 
-// token helpers
+// ��ѧ��ע�ͣ� token helpers
 function getToken() { return localStorage.getItem("token"); }
 function setToken(t) { localStorage.setItem("token", t); }
 function removeToken() { localStorage.removeItem("token"); }
@@ -10,7 +9,6 @@ function authHeader() {
     return t ? { "Authorization": "Bearer " + t } : {};
 }
 
-// robust request
 async function request(url, method = "GET", data = null, auth = false) {
     try {
         if (!url.startsWith("http")) {
@@ -48,7 +46,6 @@ async function request(url, method = "GET", data = null, auth = false) {
     }
 }
 
-// auth
 async function apiRegister(username, password) { return await request("/register", "POST", { username, password }); }
 async function apiLogin(username, password) {
     const r = await request("/login", "POST", { username, password });
@@ -56,7 +53,6 @@ async function apiLogin(username, password) {
     return r;
 }
 
-// articles
 async function apiCreateArticle(title, content, status) { return await request("/articles", "POST", { title, content, status }, true); }
 async function apiListArticles(page = 1, page_size = 10, query = "", followedFirst = false) {
     const q = `?page=${page}&page_size=${page_size}` + (query ? `&query=${encodeURIComponent(query)}` : "") + (followedFirst ? `&followed_first=1` : "");
@@ -66,19 +62,18 @@ async function apiGetArticle(id) { return await request("/articles/" + id, "GET"
 async function apiUpdateArticle(id, title, content, status) { return await request("/articles/" + id, "PUT", { title, content, status }, true); }
 async function apiDeleteArticle(id) { return await request("/articles/" + id, "DELETE", null, true); }
 
-// comments
 async function apiPostComment(articleId, content) { return await request(`/articles/${articleId}/comments`, "POST", { content }, true); }
 async function apiListComments(articleId) { return await request(`/articles/${articleId}/comments`, "GET"); }
 
-// likes (toggle)
 async function apiToggleArticleLike(articleId) { return await request(`/articles/${articleId}/like`, "POST", null, true); }
 async function apiToggleCommentLike(commentId) { return await request(`/comments/${commentId}/like`, "POST", null, true); }
 
-// follows
 async function apiToggleFollow(userId) { return await request(`/users/${userId}/follow`, "POST", null, true); }
 async function apiGetMyFollows() { return await request("/me/follows", "GET", null, true); }
 
-// profile
+
 async function apiGetMyProfile() { return await request("/me/profile", "GET", null, true); }
 async function apiUpdateMyProfile(display_name, bio) { return await request("/me/profile", "PUT", { display_name, bio }, true); }
 async function apiGetUserProfile(userId) { return await request("/users/" + userId + "/profile", "GET"); }
+
+

@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"net/http"
@@ -11,8 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// ToggleFollow - POST /users/:id/follow  （需要登录）
-// 如果未关注则创建关注，否则取消关注（toggle）
 func ToggleFollow(c *gin.Context) {
 	uidVal, ok := c.Get("user_id")
 	if !ok {
@@ -36,7 +34,6 @@ func ToggleFollow(c *gin.Context) {
 		var f model.Follow
 		res := tx.Where("follower_id = ? AND following_id = ?", userID, targetID64).First(&f)
 		if res.Error == nil {
-			// 已关注 -> 取消
 			if err := tx.Delete(&f).Error; err != nil {
 				return err
 			}
@@ -46,7 +43,6 @@ func ToggleFollow(c *gin.Context) {
 		if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
 			return res.Error
 		}
-		// 新增关注
 		if err := tx.Create(&model.Follow{FollowerID: userID, FollowingID: targetID64}).Error; err != nil {
 			return err
 		}
@@ -59,8 +55,6 @@ func ToggleFollow(c *gin.Context) {
 	}
 }
 
-// GetMyFollows - GET /me/follows  (需要登录)
-// 返回当前用户关注的用户 id 列表
 func GetMyFollows(c *gin.Context) {
 	uidVal, ok := c.Get("user_id")
 	if !ok {

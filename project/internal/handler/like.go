@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"net/http"
@@ -21,16 +21,14 @@ func ToggleArticleLike(c *gin.Context) {
 
 	var article model.Article
 	if err := db.DB.First(&article, articleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "文章不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章不存在或未发布"})
 		return
 	}
 
-	// 事务：查找是否已点赞，存在则取消，否则新增
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var like model.Like
 		res := tx.Where("target_type = ? AND target_id = ? AND user_id = ?", "article", article.ID, userID).First(&like)
 		if res.Error == nil {
-			// 已点赞，删除
 			if err := tx.Delete(&like).Error; err != nil {
 				return err
 			}
@@ -43,7 +41,6 @@ func ToggleArticleLike(c *gin.Context) {
 		if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
 			return res.Error
 		}
-		// 新增点赞
 		if err := tx.Create(&model.Like{TargetType: "article", TargetID: article.ID, UserID: userID}).Error; err != nil {
 			return err
 		}
@@ -69,7 +66,7 @@ func ToggleCommentLike(c *gin.Context) {
 
 	var comment model.Comment
 	if err := db.DB.First(&comment, commentID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "评论不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评论不存在或未发布"})
 		return
 	}
 

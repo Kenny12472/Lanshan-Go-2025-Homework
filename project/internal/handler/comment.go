@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"net/http"
@@ -33,14 +33,13 @@ func PostComment(c *gin.Context) {
 		Content string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.Content == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误或内容为空"})
 		return
 	}
 
-	// 转换 articleID
 	var article model.Article
 	if err := db.DB.First(&article, articleIDStr).Error; err != nil || article.Status != model.ArticlePublish {
-		c.JSON(http.StatusNotFound, gin.H{"error": "文章不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章不存在或未发布"})
 		return
 	}
 
@@ -50,11 +49,10 @@ func PostComment(c *gin.Context) {
 		Content:   req.Content,
 	}
 	if err := db.DB.Create(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "评论创建失败"})
 		return
 	}
 
-	// 返回创建的数据（带用户名）
 	var resp CommentResp
 	db.DB.Table("comments").
 		Select("comments.id, comments.article_id, comments.user_id, users.username, comments.content, comments.like_count, comments.created_at").

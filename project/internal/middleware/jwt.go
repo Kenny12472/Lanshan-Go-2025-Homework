@@ -1,4 +1,4 @@
-package middleware
+﻿package middleware
 
 import (
 	"net/http"
@@ -30,7 +30,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		auth := c.GetHeader("Authorization")
 		if auth == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "未登录"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			c.Abort()
 			return
 		}
@@ -42,7 +42,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(401, gin.H{"error": "token无效"})
+			c.JSON(401, gin.H{"error": "invalid token"})
 			c.Abort()
 			return
 		}

@@ -1,341 +1,216 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>文章管理 — Go 博客系统</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary-grad: linear-gradient(90deg, #4e73df, #1cc88a);
-            --card-radius: 12px;
-            --muted: #6b7280;
-        }
+    <meta charset="UTF-8">
+    <title>GO 文章系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <script src="/static/js/api.js"></script>
+
+    <style>
         body {
-            background: #f6f8fa;
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-            color: #1f2937;
             margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+            background: #f5f6fa;
         }
 
         .topbar {
-            background: var(--primary-grad);
-            color: #fff;
-            padding: 12px 20px;
+            height: 60px;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 0 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
-        .brand {
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .user-box {
             display: flex;
-            gap: 12px;
             align-items: center;
+            gap: 12px;
         }
 
-        .brand .logo {
-            width: 46px;
-            height: 46px;
-            border-radius: 10px;
-            background: #fff;
-            color: #222;
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
         }
 
-        .container-main {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 16px;
+        .container {
+            width: 900px;
+            margin: 30px auto;
         }
 
-        .controls-card {
+        .card {
+            background: #fff;
+            padding: 20px;
             border-radius: 12px;
-            padding: 16px;
-            background: #fff;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
-            margin-bottom: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         }
 
-        .layout {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
+        input,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 6px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
         }
 
-        .col-main {
-            flex: 1 1 720px;
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #4f46e5;
+            color: #fff;
         }
 
-        .col-side {
-            width: 320px;
+        button.secondary {
+            background: #888;
         }
 
-        .article-card {
-            background: #fff;
-            border-radius: var(--card-radius);
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        .article {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
         }
 
-        .article-title {
-            font-size: 20px;
-            margin: 0 0 6px;
-            font-weight: 700;
-        }
-
-        .article-excerpt {
-            color: #374151;
-            white-space: pre-wrap;
-            margin-bottom: 10px;
-        }
-
-        .meta {
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .meta .author {
-            font-weight: 700;
-            color: #111827;
-            margin-right: 8px;
-        }
-
-        .meta .dot {
-            margin: 0 8px;
-            color: #d1d5db;
-        }
-
-        .card-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            justify-content: space-between;
-            margin-top: 12px;
-        }
-
-        .like-count {
-            color: #e11d48;
-            font-weight: 700;
-            margin-left: 6px;
-        }
-
-        .follow-btn {
-            font-size: 13px;
-            padding: 6px 8px;
-        }
-
-        .comments-wrap {
-            margin-top: 12px;
-        }
-
-        .comment-item {
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 8px;
-        }
-
-        .side-card {
-            background: #fff;
-            padding: 12px;
-            border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
-            margin-bottom: 16px;
-        }
-
-        @media (max-width:992px) {
-            .layout {
-                flex-direction: column;
-            }
-
-            .col-side {
-                width: 100%;
-            }
+        .author {
+            font-size: 14px;
+            color: #666;
         }
     </style>
 </head>
 
 <body>
-    <!-- topbar -->
+
     <div class="topbar">
-        <div class="brand">
-            <div class="logo">Go</div>
+        <div class="logo">GO 文章系统</div>
+        <div class="user-box">
+            <div class="avatar" id="userAvatar">U</div>
             <div>
-                <div style="font-weight:700;font-size:18px">Go 博客系统</div>
-                <div style="font-size:12px;opacity:0.9">文章管理 · 搜索 / 关注优先 / 点赞 / 评论</div>
+                <div id="userDisplayName">未登录</div>
+                <div id="userAccount" style="font-size:12px;color:#888;"></div>
             </div>
-        </div>
-
-        <!-- 右上：用户信息面板（单页一体化） -->
-        <div id="userPanel" style="display:flex; gap:12px; align-items:center;">
-            <div id="userInfo" style="display:flex; gap:8px; align-items:center; cursor:pointer;"
-                onclick="openEditProfile()">
-                <div id="userAvatar"
-                    style="width:40px;height:40px;border-radius:8px;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-weight:700;">
-                    U</div>
-                <div style="text-align:left;">
-                    <div id="userDisplayName" style="font-weight:700;">未登录</div>
-                    <div id="userAccount" style="font-size:12px;color:rgba(255,255,255,0.9)">—</div>
-                </div>
-            </div>
-            <button class="btn btn-light btn-sm" onclick="logout()">退出</button>
+            <button onclick="showProfile()">编辑资料</button>
+            <button class="secondary" onclick="logout()">退出</button>
         </div>
     </div>
 
-    <div class="container-main">
-        <!-- 搜索 / 控制栏 -->
-        <div class="controls-card">
-            <div class="row g-2 align-items-center">
-                <div class="col-md-7">
-                    <input id="searchInput" class="form-control" placeholder="搜索文章标题或内容（回车搜索）" />
-                </div>
-                <div class="col-md-3 d-flex align-items-center">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="followedFirstSwitch" />
-                        <label class="form-check-label" for="followedFirstSwitch" style="font-size:14px;">关注优先</label>
-                    </div>
-                </div>
-                <div class="col-md-2 text-end">
-                    <button class="btn btn-success" onclick="showCreateArea()">写文章</button>
-                </div>
-            </div>
+    <div class="container">
 
-            <!-- create area (collapsed by default) -->
-            <div id="createArea" style="display:none; margin-top:12px;">
-                <input id="newTitle" class="form-control mb-2" placeholder="标题" />
-                <textarea id="newContent" class="form-control mb-2" rows="4" placeholder="内容（支持 Markdown）"></textarea>
-                <div class="d-flex justify-content-end gap-2">
-                    <select id="newStatus" class="form-select form-select-sm" style="width:140px">
-                        <option value="1">发布</option>
-                        <option value="0">草稿</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="createArticle()">提交</button>
-                    <button class="btn btn-outline-secondary" onclick="hideCreateArea()">取消</button>
-                </div>
-            </div>
+        <div class="card">
+            <h3>发布文章</h3>
+            <input id="newTitle" placeholder="文章标题">
+            <textarea id="newContent" rows="5" placeholder="文章内容"></textarea>
+            <button onclick="createArticle()">发布</button>
         </div>
 
-        <div class="layout">
-            <div class="col-main">
-                <div id="articlesList"></div>
-                <nav>
-                    <ul class="pagination justify-content-center" id="pagination"></ul>
-                </nav>
-            </div>
-
-            <div class="col-side">
-                <div class="side-card">
-                    <div style="font-weight:700; margin-bottom:8px;">最新文章</div>
-                    <div id="recentList"></div>
-                </div>
-
-                <div class="side-card">
-                    <div style="font-weight:700; margin-bottom:8px;">说明</div>
-                    <div style="color:var(--muted); font-size:13px;">
-                        - 默认按发布时间倒序（最新在前）。<br />
-                        - 打开“关注优先”后，会把你关注的作者文章优先展示。<br />
-                        - 在文章卡片可点赞、评论、关注作者（需要登录）。<br />
-                        - 点击右上头像或“编辑资料”可直接在页面内修改显示名与简介。
-                    </div>
-                </div>
-            </div>
+        <div class="card">
+            <h3>全部文章</h3>
+            <div id="articlesList">加载中...</div>
         </div>
+
     </div>
 
-    <!-- inline profile modal -->
+    <!-- 编辑资料弹窗 -->
     <div id="profileModal"
-        style="display:none; position:fixed; right:20px; top:70px; width:360px; z-index:9999; background:#fff; box-shadow:0 12px 40px rgba(0,0,0,0.12); border-radius:10px; padding:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-weight:700;">编辑个人资料</div>
-            <button onclick="closeProfileModal()" class="btn btn-sm btn-outline-secondary">关闭</button>
-        </div>
-        <div style="margin-top:8px;">
-            <label class="form-label">显示名</label>
-            <input id="profileDisplayName" class="form-control" placeholder="显示名（例如：张三）" />
-            <label class="form-label" style="margin-top:8px;">个人简介</label>
-            <textarea id="profileBio" class="form-control" rows="4" placeholder="写点个人介绍..."></textarea>
-            <div style="margin-top:10px; text-align:right;">
-                <button class="btn btn-primary" onclick="saveProfile()">保存</button>
-            </div>
+        style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);">
+        <div style="width:400px;margin:100px auto;background:#fff;padding:20px;border-radius:10px;">
+            <h3>编辑资料</h3>
+            <input id="profileDisplayName" placeholder="显示名称">
+            <textarea id="profileBio" rows="3" placeholder="个人简介"></textarea>
+            <button onclick="saveProfile()">保存</button>
+            <button class="secondary" onclick="hideProfile()">取消</button>
         </div>
     </div>
 
-    <script src="/static/js/api.js"></script>
     <script>
-        // pagination/search/state
-        let page = 1, pageSize = 6, total = 0, query = "";
-        const followedSwitch = document.getElementById('followedFirstSwitch');
 
-        // load current user panel & fill modal
-        async function loadCurrentUserPanel() {
-            const elName = document.getElementById('userDisplayName');
-            const elAccount = document.getElementById('userAccount');
-            const elAvatar = document.getElementById('userAvatar');
-            if (!getToken()) {
-                elName.innerText = '未登录';
-                elAccount.innerText = '';
-                elAvatar.innerText = 'U';
-                return;
-            }
+        window.onload = async function () { if (!getToken()) { window.location.href = "/static/auth.html"; return; } await loadCurrentUser(); await loadArticles(); };
+
+        async function loadCurrentUser() {
             const p = await apiGetMyProfile();
-            if (!p) return;
-            elName.innerText = p.display_name || p.username;
-            elAccount.innerText = p.username;
-            elAvatar.innerText = (p.display_name || p.username).slice(0, 1).toUpperCase();
-            const displayInput = document.getElementById('profileDisplayName');
-            const bioInput = document.getElementById('profileBio');
-            if (displayInput) displayInput.value = p.display_name || p.username;
-            if (bioInput) bioInput.value = p.bio || '';
+            if (!p || p.error) { removeToken(); window.location.href = "/static/auth.html"; return; }
+            const display = p.display_name || p.username || "";
+            document.getElementById("userDisplayName").innerText = display || '未登录';
+            document.getElementById("userAccount").innerText = p.username || "";
+            document.getElementById("userAvatar").innerText = display ? display[0].toUpperCase() : "U";
+            document.getElementById("profileDisplayName").value = p.display_name || p.username || "";
+            document.getElementById("profileBio").value = p.bio || "";
         }
 
-        function openEditProfile() { if (!getToken()) { alert('请先登录'); window.location.href = '/static/auth.html'; return; } document.getElementById('profileModal').style.display = 'block'; }
-        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
+        function showProfile() { document.getElementById("profileModal").style.display = "block"; }
+        function hideProfile() { document.getElementById("profileModal").style.display = "none"; }
 
         async function saveProfile() {
-            const dn = document.getElementById('profileDisplayName').value.trim();
-            const bio = document.getElementById('profileBio').value.trim();
-            if (!dn) { alert('显示名不能为空'); return; }
-            const r = await apiUpdateMyProfile(dn, bio);
-            if (r) {
-                alert('保存成功');
-                closeProfileModal();
-                await loadCurrentUserPanel();
-                loadArticles(followedSwitch.checked);
-            } else {
-                alert('保存失败');
-            }
+            const name = document.getElementById("profileDisplayName").value.trim();
+            const bio = document.getElementById("profileBio").value.trim();
+            if (!name) { alert("显示名称不能为空"); return; }
+            const r = await apiUpdateMyProfile(name, bio);
+            if (!r || r.error) { alert("保存失败"); return; }
+            alert("保存成功"); hideProfile(); await loadCurrentUser(); await loadArticles();
         }
 
-        // 点击作者名查看简介（内联弹窗）
-        async function showAuthorProfile(authorId) {
-            const p = await apiGetUserProfile(authorId);
-            if (!p) { alert('获取用户信息失败'); return; }
-            const bio = p.bio || '该用户尚未填写个人简介。';
-            // 简单内联展示 —— 使用浏览器的 alert（可替换为自定义浮层）
-            alert(`${p.display_name || p.username}\n\n${bio}`);
+        function logout() { removeToken(); window.location.href = "/static/auth.html"; }
+
+        async function createArticle() {
+            const title = document.getElementById("newTitle").value.trim();
+            const content = document.getElementById("newContent").value.trim();
+            if (!title || !content) { alert("标题和内容不能为空"); return; }
+            const r = await apiCreateArticle(title, content, 1);
+            if (!r || r.error) { alert("发布失败"); return; }
+            document.getElementById("newTitle").value = ""; document.getElementById("newContent").value = ""; await loadArticles();
         }
 
-        // 其余文章加载 / 评论 / 点赞 / 关注 等函数（与之前版本一致）
-        // 为简短，这里直接调用之前存在的全页面版本的 loadArticles / createArticle / toggleFollow / toggleLikeArticle / postComment / loadComments 等。
-        // 如果你替换了 index.html 的其他部分，请保证这些函数存在（之前我已给出完整实现）。
-        // 下面调用 loadArticles 初始加载并加载用户资料
-        window.addEventListener('load', async () => {
-            await loadCurrentUserPanel();
-            loadArticles(false);
-        });
+        async function loadArticles() {
+            const res = await apiListArticles(1, 20);
+            if (!res || !res.items) { document.getElementById("articlesList").innerText = "加载失败"; return; }
+            const list = res.items; if (list.length === 0) { document.getElementById("articlesList").innerText = "暂无文章"; return; }
+            let html = "";
+            list.forEach(a => {
+                const id = a.id; const likeCount = a.like_count || 0;
+                html += `\n        <div class="article" id="article-${id}">\n            <h4>${escapeHtml(a.title)}</h4>\n            <div class="author">作者：${escapeHtml(a.author_name)} · ${new Date(a.created_at).toLocaleString()}</div>\n            <p>${escapeHtml(a.content)}</p>\n            <div style=\"margin-top:8px;display:flex;gap:8px;align-items:center;\">\n                <button onclick=\"toggleArticleLike(${id}, this)\">❤ <span id=\"like-count-${id}\">${likeCount}</span></button>\n                <button onclick=\"toggleComments(${id})\">评论</button>\n            </div>\n            <div id=\"comments-${id}\" style=\"display:none;margin-top:10px;\">\n                <div style=\"margin-bottom:8px;\">\n                    <textarea id=\"comment-input-${id}\" rows=\"2\" placeholder=\"写评论...\" style=\"width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;\"></textarea>\n                    <div style=\"text-align:right;margin-top:6px;\">\n                        <button onclick=\"postComment(${id})\">提交</button>\n                    </div>\n                </div>\n                <div id=\"comments-list-${id}\">加载中...</div>\n            </div>\n        </div>\n        `;
+            });
+            document.getElementById("articlesList").innerHTML = html;
+        }
 
-        // logout helper
-        function logout() { removeToken(); window.location.href = '/static/auth.html'; }
+        function escapeHtml(s) { if (!s) return ""; return String(s).replace(/[&<>\"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": "&#39;" }[c]; }); }
+
+        async function toggleArticleLike(articleId, btn) { const r = await apiToggleArticleLike(articleId); if (!r) { alert('操作失败'); return; } const countEl = document.getElementById(`like-count-${articleId}`); let count = parseInt(countEl.innerText || '0', 10); if (r.liked) { count = count + 1; btn.style.opacity = '0.8'; } else { count = Math.max(0, count - 1); btn.style.opacity = '1'; } countEl.innerText = count; }
+
+        async function toggleComments(articleId) { const area = document.getElementById(`comments-${articleId}`); if (area.style.display === 'none' || area.style.display === '') { area.style.display = 'block'; await loadComments(articleId); } else { area.style.display = 'none'; } }
+
+        async function loadComments(articleId) {
+            const listEl = document.getElementById(`comments-list-${articleId}`);
+            listEl.innerText = '加载中...'; const res = await apiListComments(articleId); if (!res) { listEl.innerText = '加载失败'; return; } if (res.length === 0) { listEl.innerText = '暂无评论'; return; }
+            let html = '';
+            res.forEach(c => {
+                html += `<div style="padding:8px;border-radius:8px;background:#f8fafc;margin-bottom:8px;">` + `<div style="font-weight:700;">${escapeHtml(c.username)}</div>` + `<div style="color:#666;margin:6px 0;">${escapeHtml(c.content)}</div>` + `<div style="font-size:12px;color:#888;display:flex;gap:8px;align-items:center;">` + `<div>${new Date(c.created_at).toLocaleString()}</div>` + `<button onclick="toggleCommentLike(${c.id}, ${articleId})">❤ ${c.like_count || 0}</button>` + `</div>` + `</div>`;
+            });
+            listEl.innerHTML = html;
+        }
+
+        async function postComment(articleId) { const ta = document.getElementById(`comment-input-${articleId}`); const content = ta.value.trim(); if (!content) { alert('评论内容不能为空'); return; } const r = await apiPostComment(articleId, content); if (!r || r.error) { alert('发表评论失败'); return; } ta.value = ''; await loadComments(articleId); }
+
+        async function toggleCommentLike(commentId, articleId) { const r = await apiToggleCommentLike(commentId); if (!r) { alert('操作失败'); return; } await loadComments(articleId); }
+
     </script>
+
 </body>
 
 </html>
